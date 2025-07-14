@@ -4,20 +4,22 @@ use nom::{
     character::complete::{line_ending, not_line_ending, u32},
     combinator::{map, value},
     error::ParseError,
-    sequence::{terminated, tuple},
+    sequence::terminated,
     IResult, Parser,
 };
 
 use crate::ofx::header::*;
 
 /// Parses an element.
-fn elem<'a, O, E, P>(name: &'a str, mut p: P) -> impl FnMut(&'a str) -> IResult<&'a str, O, E>
+fn elem<'a, P>(
+    name: &'a str,
+    mut p: P,
+) -> impl FnMut(&'a str) -> IResult<&'a str, P::Output, P::Error>
 where
-    E: ParseError<&'a str>,
-    P: Parser<&'a str, O, E>,
+    P: Parser<&'a str>,
 {
     move |input: &str| {
-        let (input, _) = terminated(tag(name), tag(":"))(input)?;
+        let (input, _) = terminated(tag(name), tag(":")).parse(input)?;
         let (input, value) = p.parse(input)?;
         let (input, _) = line_ending(input)?;
         Ok((input, value))
@@ -136,7 +138,7 @@ where
             header_version,
             (data, version, security, encoding, charset, compression, old_file_uid, new_file_uid),
         ),
-    ) = tuple((
+    ) = (
         header_version_elem,
         permutation((
             data_elem,
@@ -148,7 +150,8 @@ where
             old_file_uid_elem,
             new_file_uid_elem,
         )),
-    ))(input)?;
+    )
+        .parse(input)?;
 
     Ok((
         input,

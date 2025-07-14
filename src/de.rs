@@ -1,7 +1,34 @@
-use crate::{de::sgml::from_str as from_sgml_str, error::Result, ofx::Ofx};
+use core::{fmt, marker::PhantomData};
+use serde::{de, Deserializer};
+use time::OffsetDateTime;
+
+use crate::{de::sgml::from_str as from_sgml_str, ofx::Ofx, parse::sgml::datetime};
 
 pub(crate) mod sgml;
 
-pub fn from_str(s: &str) -> Result<Ofx> {
+pub(super) struct OffsetDateTimeVisitor<T: ?Sized>(pub(super) PhantomData<T>);
+
+impl<'a> serde::de::Visitor<'a> for OffsetDateTimeVisitor<OffsetDateTime> {
+    type Value = OffsetDateTime;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("an `OffsetDateTime`")
+    }
+
+    fn visit_str<E: de::Error>(self, value: &str) -> Result<OffsetDateTime, E> {
+        datetime::<nom::error::Error<&str>>(value)
+            .map(|(_, dt)| dt)
+            .map_err(E::custom)
+    }
+}
+
+/// Deserializer for OFX datetimes into `time::OffsetDateTime`
+pub(crate) fn deserialize_datetime<'de, D: Deserializer<'de>>(
+    deserializer: D,
+) -> Result<OffsetDateTime, D::Error> {
+    deserializer.deserialize_str(OffsetDateTimeVisitor(PhantomData))
+}
+
+pub fn from_str(s: &str) -> crate::error::Result<Ofx> {
     from_sgml_str(s)
 }

@@ -1,9 +1,13 @@
+/// The content type of the document. `OFXSGML` is the only valid value; other values are
+/// tolerated, yielding a warning.
 #[derive(Clone, Debug, PartialEq)]
 pub enum OfxContentType {
     OfxSgml,
     Unknown(String),
 }
 
+/// The type of application-level security used for the `<OFX>` block. Valid values are `NONE`
+/// and `TYPE1`; other values are tolerated, yielding a warning.
 #[derive(Clone, Debug, PartialEq)]
 pub enum OfxSecurity {
     None,
@@ -11,6 +15,7 @@ pub enum OfxSecurity {
     Unknown(String),
 }
 
+/// The text encoding used for character data.
 #[derive(Clone, Debug, PartialEq)]
 pub enum OfxEncoding {
     UsAscii,
@@ -18,6 +23,8 @@ pub enum OfxEncoding {
     Unknown(String),
 }
 
+/// The character set used for character data. Valid values are `ISO-8859-1`, `1252` and `NONE`;
+/// other values are tolerated, yielding a warning.
 #[derive(Clone, Debug, PartialEq)]
 pub enum OfxCharset {
     Latin1,

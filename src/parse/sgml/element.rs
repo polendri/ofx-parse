@@ -5,37 +5,25 @@ use std::borrow::Cow;
 use nom::{
     branch::alt,
     bytes::complete::{is_a, tag, take, take_until},
-    character::complete::multispace0,
     combinator::{eof, map, peek, recognize, value, verify},
     error::ParseError,
     multi::{many0, many_till},
-    sequence::{delimited, tuple},
+    sequence::delimited,
     IResult, Parser,
 };
 
-/// Consumes whitespace before the provided parser.
-pub(crate) fn whitespace_preceded<'a, O, E, P>(
-    mut p: P,
-) -> impl FnMut(&'a str) -> IResult<&'a str, O, E>
-where
-    E: ParseError<&'a str>,
-    P: Parser<&'a str, O, E>,
-{
-    move |input: &str| {
-        let (input, _) = multispace0(input)?;
-        p.parse(input)
-    }
-}
+use crate::parse::sgml::whitespace_preceded;
 
 /// Parses the name of a tag.
 fn tag_name<'a, E>(input: &'a str) -> IResult<&'a str, &'a str, E>
 where
     E: ParseError<&'a str>,
 {
-    recognize(tuple((
+    recognize((
         is_a("ABCDEFGHIJKLMNOPQRSTUVWXYZ"),
-        many0(is_a("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")),
-    )))(input)
+        many0(is_a("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-_:")),
+    ))
+    .parse(input)
 }
 
 /// Parses the start tag of an element.
@@ -43,7 +31,7 @@ pub(crate) fn any_start_tag<'a, E>(input: &'a str) -> IResult<&'a str, &'a str, 
 where
     E: ParseError<&'a str>,
 {
-    delimited(tag("<"), tag_name, tag(">"))(input)
+    delimited(tag("<"), tag_name, tag(">")).parse(input)
 }
 
 /// Parses a named start tag of an element.
@@ -51,7 +39,7 @@ pub(crate) fn start_tag<'a, E>(name: &'a str) -> impl FnMut(&'a str) -> IResult<
 where
     E: ParseError<&'a str>,
 {
-    delimited(tag("<"), tag(name), tag(">"))
+    move |input: &str| delimited(tag("<"), tag(name), tag(">")).parse(input)
 }
 
 /// Parses the end tag of an element.
@@ -59,7 +47,7 @@ pub(crate) fn any_end_tag<'a, E>(input: &'a str) -> IResult<&'a str, &'a str, E>
 where
     E: ParseError<&'a str>,
 {
-    delimited(tag("</"), tag_name, tag(">"))(input)
+    delimited(tag("</"), tag_name, tag(">")).parse(input)
 }
 
 /// Parses a named end tag of an element.
@@ -67,7 +55,7 @@ pub(crate) fn end_tag<'a, E>(name: &'a str) -> impl FnMut(&'a str) -> IResult<&'
 where
     E: ParseError<&'a str>,
 {
-    delimited(tag("</"), tag(name), tag(">"))
+    move |input: &str| delimited(tag("</"), tag(name), tag(">")).parse(input)
 }
 
 /// Parses the value of an element.
@@ -87,7 +75,7 @@ where
             verify(
                 recognize(many_till(
                     take(1u8),
-                    peek(alt((
+                    peek(whitespace_preceded(alt((
                         tag("<"),
                         tag("&lt;"),
                         tag("&gt;"),
@@ -95,7 +83,7 @@ where
                         tag("&nbsp;"),
                         delimited(tag("<![CDATA["), take_until(CDATA_END), tag(CDATA_END)),
                         eof,
-                    ))),
+                    )))),
                 )),
                 |o: &str| !o.is_empty(),
             ),
@@ -105,7 +93,8 @@ where
             1 => Cow::Borrowed(vs[0]),
             _ => Cow::Owned(vs.concat()),
         },
-    )(input)
+    )
+    .parse(input)
 }
 
 #[allow(non_snake_case)]
@@ -124,6 +113,7 @@ mod tests {
     #[test_case("A>"         , Ok("A")            , ">"       ; "single char"  )]
     #[test_case("UPPER>"     , Ok("UPPER")        , ">"       ; "multi char"   )]
     #[test_case("UPPER2>"    , Ok("UPPER2")       , ">"       ; "with number"  )]
+    #[test_case("SP.-_:>"    , Ok("SP.-_:")       , ">"       ; "special chars")]
     #[test_case("WITH SPACE>", Ok("WITH")         , " SPACE>" ; "whitespace"   )]
     fn tag_name(input: &str, expected: Expected<&str>, remaining: &str) {
         assert_parser(super::tag_name, input, expected, remaining);

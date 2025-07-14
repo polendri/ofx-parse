@@ -5,7 +5,10 @@ use nom::{branch::alt, combinator::map};
 use serde::de::{self, value::BorrowedStrDeserializer, Deserializer as SerdeDeserializer};
 
 use super::Deserializer;
-use crate::parse::sgml::element::{any_start_tag, end_tag, whitespace_preceded};
+use crate::parse::sgml::{
+    element::{any_start_tag, end_tag},
+    whitespace_preceded,
+};
 use crate::{
     error::{Error, Result},
     parse::sgml::element::elem_value,
@@ -79,7 +82,7 @@ impl<'a, 'de, 'h> de::EnumAccess<'de> for EnumAccess<'a, 'de, 'h> {
             map(any_start_tag, Cow::Borrowed),
             elem_value,
         ))))? {
-            Cow::Borrowed(name) => Ok(name.trim_end()),
+            Cow::<str>::Borrowed(name) => Ok(name.trim_end()),
             _ => Err(Error::EscapesInEnumVariant),
         }?;
 

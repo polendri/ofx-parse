@@ -3,7 +3,7 @@ use serde::de::{self, DeserializeSeed};
 
 use super::Deserializer;
 use crate::error::{Error, Result};
-use crate::parse::sgml::element::{any_end_tag, whitespace_preceded};
+use crate::parse::sgml::{element::any_end_tag, whitespace_preceded};
 
 pub(super) struct SeqAccess<'a, 'de: 'a, 'h: 'a> {
     de: &'a mut Deserializer<'de, 'h>,

@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use test_case::test_case;
 use time::macros::datetime;
 
@@ -33,9 +35,11 @@ const HEADER: OfxHeader = OfxHeader {
                     status: StatusV1 {
                         code: 0,
                         severity: Severity::Info,
-                        message: "OK\n   ",
+                        message: "OK",
                     },
                     dtserver: datetime!(2022-07-17 16:41:44 -8),
+                    language: "ENG",
+                    unknown: HashMap::from([("INTU.BID", "00015")]),
                 })
             }),
         },

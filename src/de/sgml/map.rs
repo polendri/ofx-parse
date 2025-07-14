@@ -1,10 +1,12 @@
-use nom::{character::complete::multispace0, combinator::opt, sequence::tuple};
+use nom::{character::complete::multispace0, combinator::opt};
 use serde::de::{self, value::BorrowedStrDeserializer, DeserializeSeed};
 
 use super::Deserializer;
 use crate::error::{Error, Result};
-use crate::parse::sgml::element::end_tag;
-use crate::parse::sgml::element::{any_end_tag, any_start_tag, whitespace_preceded};
+use crate::parse::sgml::{
+    element::{any_end_tag, any_start_tag, end_tag},
+    whitespace_preceded,
+};
 
 /// Implementor of the serde `MapAccess` trait for OFX.
 pub(super) struct MapAccess<'a, 'de: 'a, 'h: 'a> {
@@ -70,7 +72,7 @@ impl<'a, 'de, 'h> de::MapAccess<'de> for MapAccess<'a, 'de, 'h> {
 
         if !self.strip_outer {
             let tag = self.tag.take().unwrap();
-            self.de.consume(opt(tuple((multispace0, end_tag(tag)))))?;
+            self.de.consume(opt((multispace0, end_tag(tag))))?;
         }
 
         Ok(value)

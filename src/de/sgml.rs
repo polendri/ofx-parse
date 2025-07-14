@@ -7,10 +7,11 @@ use std::borrow::Cow;
 use nom::{
     character::complete::{anychar, i16, i32, i64, i8, u16, u32, u64, u8},
     combinator::opt,
-    error::{convert_error, Error as BriefError, VerboseError},
+    error::Error as BriefError,
     number::complete::{double, float},
     Err, Parser,
 };
+use nom_language::error::{convert_error, VerboseError};
 use serde::Deserialize;
 use serde::{
     de::{self, Visitor},
@@ -19,8 +20,9 @@ use serde::{
 
 use self::{map::MapAccess, seq::SeqAccess, sum::EnumAccess};
 use crate::parse::sgml::{
-    element::{elem_value, end_tag, whitespace_preceded},
+    element::{elem_value, end_tag},
     header::ofx_header,
+    whitespace_preceded,
 };
 use crate::{
     error::{Error, Result},
@@ -45,9 +47,9 @@ impl<'de, 'h> Deserializer<'de, 'h> {
         })
     }
 
-    fn consume<O, P>(&mut self, mut p: P) -> Result<O>
+    fn consume<P>(&mut self, mut p: P) -> Result<P::Output>
     where
-        P: Parser<&'de str, O, VerboseError<&'de str>>,
+        P: Parser<&'de str, Error = VerboseError<&'de str>>,
     {
         p.parse(self.input)
             .map(|(input, v)| {
@@ -60,9 +62,9 @@ impl<'de, 'h> Deserializer<'de, 'h> {
             })
     }
 
-    fn peek<O, P>(&self, mut p: P) -> Option<O>
+    fn peek<P>(&self, mut p: P) -> Option<P::Output>
     where
-        P: Parser<&'de str, O, BriefError<&'de str>>,
+        P: Parser<&'de str, Error = BriefError<&'de str>>,
     {
         p.parse(self.input).ok().map(|(_, v)| v)
     }
@@ -71,11 +73,11 @@ impl<'de, 'h> Deserializer<'de, 'h> {
 impl<'de, 'h, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de, 'h> {
     type Error = Error;
 
-    fn deserialize_any<V>(self, _visitor: V) -> Result<V::Value>
+    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
-        Err(Error::UnsupportedDataType)
+        self.deserialize_str(visitor)
     }
 
     fn deserialize_i8<V>(self, visitor: V) -> Result<V::Value>
@@ -449,7 +451,7 @@ mod tests {
 
     #[test_case(""           , Ok("")                        , ""       ; "eof"                 )]
     #[test_case("</TAG>"     , Ok("")                        , "</TAG>" ; "end tag"             )]
-    #[test_case(" \r\nvalue ", Ok(" \r\nvalue ")             , ""       ; "whitespace"          )]
+    #[test_case(" \r\nvalue ", Ok(" \r\nvalue")              , " "      ; "whitespace"          )]
     #[test_case("a1A!&CDATA&", Ok("a1A!&CDATA&")             , ""       ; "no escape sequences" )]
     #[test_case("a1&lt;A!"   , Err(Error::InvalidBorrowedStr), ""       ; "with escape sequence")]
     fn deserializer__str(input: &str, expected: Result<&str>, remaining: &str) {
@@ -458,7 +460,7 @@ mod tests {
 
     #[test_case(""           , Ok(String::from(""))           , ""       ; "eof"                 )]
     #[test_case("</TAG>"     , Ok(String::from(""))           , "</TAG>" ; "end tag"             )]
-    #[test_case("\r\nvalue " , Ok(String::from("\r\nvalue ")) , ""       ; "whitespace"          )]
+    #[test_case("\r\nvalue " , Ok(String::from("\r\nvalue"))  , " "      ; "whitespace"          )]
     #[test_case("a1A!&CDATA&", Ok(String::from("a1A!&CDATA&")), ""       ; "no escape sequences" )]
     #[test_case("a1&lt;A!"   , Ok(String::from("a1<A!"))      , ""       ; "with escape sequence")]
     fn deserializer__string(input: &str, expected: Result<String>, remaining: &str) {
@@ -702,12 +704,12 @@ mod tests {
         assert_deserialize(input, expected, remaining);
     }
 
-    #[test_case("UNIT"          , Ok(Enum::Unit)      , "" ; "text unit variant"            )]
-    #[test_case(" UNIT "        , Ok(Enum::Unit)      , "" ; "text unit variant with spaces")]
-    #[test_case("<UNIT>"        , Ok(Enum::Unit)      , "" ; "unterminated tag unit variant")]
-    #[test_case("<UNIT></UNIT>" , Ok(Enum::Unit)      , "" ; "terminated tag unit variant"  )]
-    #[test_case("<NEWT>3"       , Ok(Enum::Newtype(3)), "" ; "unterminated newtype variant" )]
-    #[test_case("<NEWT>3</NEWT>", Ok(Enum::Newtype(3)), "" ; "terminated newtype variant"   )]
+    #[test_case("UNIT"          , Ok(Enum::Unit)      , ""  ; "text unit variant"            )]
+    #[test_case(" UNIT "        , Ok(Enum::Unit)      , " " ; "text unit variant with spaces")]
+    #[test_case("<UNIT>"        , Ok(Enum::Unit)      , ""  ; "unterminated tag unit variant")]
+    #[test_case("<UNIT></UNIT>" , Ok(Enum::Unit)      , ""  ; "terminated tag unit variant"  )]
+    #[test_case("<NEWT>3"       , Ok(Enum::Newtype(3)), ""  ; "unterminated newtype variant" )]
+    #[test_case("<NEWT>3</NEWT>", Ok(Enum::Newtype(3)), ""  ; "terminated newtype variant"   )]
     #[test_case(
         "<TUPLE>3<STRUCT>4</STRUCT></TUPLE>",
         Ok(Enum::Tuple(3, SingleValueFieldStruct { field: 4 })),

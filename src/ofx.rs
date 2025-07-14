@@ -1,7 +1,9 @@
 use serde::Deserialize;
+use std::collections::HashMap;
 use time::OffsetDateTime;
 
-use self::header::OfxHeader;
+use crate::de::deserialize_datetime;
+
 pub use self::header::*;
 
 pub mod header;
@@ -29,7 +31,11 @@ pub struct SignonResponse<'a> {
     pub status: StatusV1<'a>,
     // TODO: Copy this desrializer impl https://docs.rs/time/latest/src/time/serde/iso8601.rs.html
     //       in order to implement the OFX 1.6 3.2.8.2 page-70 datetime spec
+    #[serde(deserialize_with = "deserialize_datetime")]
     pub dtserver: OffsetDateTime,
+    pub language: &'a str,
+    #[serde(flatten)]
+    pub unknown: HashMap<&'a str, &'a str>,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]

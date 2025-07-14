@@ -3,8 +3,11 @@ use std::fmt;
 use serde::de;
 use thiserror::Error as ThisError;
 
+/// Error type for the `ofx-parse` crate.
 #[derive(Clone, Debug, PartialEq, ThisError)]
 pub enum Error {
+    #[error("deserialization failed")]
+    Deserialize(String),
     #[error("escape sequences in enum variant names are not supported")]
     EscapesInEnumVariant,
     #[error("expected borrowed str is invalid due to escape sequences in the input")]
@@ -25,7 +28,7 @@ pub enum Error {
 
 impl de::Error for Error {
     fn custom<T: fmt::Display>(msg: T) -> Error {
-        Error::Unknown(format!("{}", msg))
+        Error::Deserialize(format!("{}", msg))
     }
 }
 

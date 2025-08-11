@@ -31,6 +31,7 @@ use crate::{
     OfxRoot,
 };
 
+/// Serde deserializer for SGML OFX documents.
 pub(crate) struct Deserializer<'de, 'h> {
     pub header: &'h OfxHeader<'de>,
     input: &'de str,
@@ -277,6 +278,27 @@ impl<'de, 'h, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de, 'h> {
     }
 
     forward_to_deserialize_any! { bool bytes byte_buf identifier ignored_any }
+}
+
+pub(crate) fn header_from_str(s: &str) -> Result<(&str, OfxHeader)> {
+    ofx_header::<VerboseError<&str>>(s).map_err(|e| match e {
+        Err::Incomplete(_) => Error::ParseIncomplete,
+        Err::Error(e) | Err::Failure(e) => Error::ParseError(convert_error(s, e)),
+    })
+}
+
+pub(crate) fn body_from_str<'a, B: Deserialize<'a>>(
+    header: &'a OfxHeader,
+    s: &'a str,
+) -> Result<B> {
+    let mut deserializer = Deserializer::from_str(header, s)?;
+    let b = B::deserialize(&mut deserializer)?;
+
+    if deserializer.input.trim_start().is_empty() {
+        Ok(b)
+    } else {
+        Err(Error::TrailingInput)
+    }
 }
 
 pub(crate) fn from_str(s: &str) -> Result<Ofx> {

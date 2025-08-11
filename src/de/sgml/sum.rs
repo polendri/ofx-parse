@@ -90,3 +90,5 @@ impl<'a, 'de, 'h> de::EnumAccess<'de> for EnumAccess<'a, 'de, 'h> {
         Ok((name, VariantAccess::new(self.de, name_str)))
     }
 }
+
+// Tested indirectly via the parent `sgml` module's unit tests

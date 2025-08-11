@@ -42,3 +42,5 @@ impl<'a, 'de, 'h> de::SeqAccess<'de> for SeqAccess<'a, 'de, 'h> {
         }
     }
 }
+
+// Tested indirectly via the parent `sgml` module's unit tests

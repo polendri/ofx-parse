@@ -61,3 +61,12 @@ pub(crate) fn deserialize_option_datetime<'de, D: Deserializer<'de>>(
 pub fn from_str(s: &str) -> crate::error::Result<Ofx> {
     from_sgml_str(s)
 }
+
+#[allow(non_snake_case)]
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // #[test]
+    // fn deserialize_datetime__valid_input__
+}

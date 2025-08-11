@@ -78,3 +78,5 @@ impl<'a, 'de, 'h> de::MapAccess<'de> for MapAccess<'a, 'de, 'h> {
         Ok(value)
     }
 }
+
+// Tested indirectly via the parent `sgml` module's unit tests

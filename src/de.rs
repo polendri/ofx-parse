@@ -22,6 +22,27 @@ impl<'a> serde::de::Visitor<'a> for OffsetDateTimeVisitor<OffsetDateTime> {
     }
 }
 
+pub(super) struct OptionOffsetDateTimeVisitor<T: ?Sized>(pub(super) PhantomData<T>);
+
+impl<'a> serde::de::Visitor<'a> for OptionOffsetDateTimeVisitor<Option<OffsetDateTime>> {
+    type Value = Option<OffsetDateTime>;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("an `Option<OffsetDateTime>`")
+    }
+
+    fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: Deserializer<'a>,
+    {
+        deserialize_datetime(deserializer).map(Some)
+    }
+
+    fn visit_none<E>(self) -> Result<Self::Value, E> {
+        Ok(None)
+    }
+}
+
 /// Deserializer for OFX datetimes into `time::OffsetDateTime`
 pub(crate) fn deserialize_datetime<'de, D: Deserializer<'de>>(
     deserializer: D,
@@ -29,6 +50,14 @@ pub(crate) fn deserialize_datetime<'de, D: Deserializer<'de>>(
     deserializer.deserialize_str(OffsetDateTimeVisitor(PhantomData))
 }
 
+/// Deserializer for optional OFX datetimes into `time::OffsetDateTime`
+pub(crate) fn deserialize_option_datetime<'de, D: Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Option<OffsetDateTime>, D::Error> {
+    deserializer.deserialize_option(OptionOffsetDateTimeVisitor(PhantomData))
+}
+
+/// Deserializes an OFX document from a string.
 pub fn from_str(s: &str) -> crate::error::Result<Ofx> {
     from_sgml_str(s)
 }

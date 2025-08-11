@@ -26,7 +26,7 @@ const HEADER: OfxHeader = OfxHeader {
     "empty OFX element"
 )]
 #[test_case(
-    include_str!("data/v102/signon_response.ofx"),
+    include_str!("data/v102/signon_response__required_fields.ofx"),
     Ok(Ofx {
         header: HEADER,
         ofx: OfxRoot {
@@ -38,13 +38,38 @@ const HEADER: OfxHeader = OfxHeader {
                         message: "OK",
                     },
                     dtserver: datetime!(2022-07-17 16:41:44 -8),
+                    userkey: None,
+                    tskeyexpire: None,
                     language: "ENG",
                     unknown: HashMap::from([("INTU.BID", "00015")]),
                 })
             }),
         },
     }) ;
-    "signon response"
+    "signon response with required fields"
+)]
+#[test_case(
+    include_str!("data/v102/signon_response__all_fields.ofx"),
+    Ok(Ofx {
+        header: HEADER,
+        ofx: OfxRoot {
+            signonmsgsrsv1: Some(SignonMessageSetV1 {
+                sonrs: Some(SignonResponse {
+                    status: StatusV1 {
+                        code: 0,
+                        severity: Severity::Info,
+                        message: "OK",
+                    },
+                    dtserver: datetime!(2022-07-17 16:41:44 -8),
+                    userkey: Some("ABCDEFG"),
+                    tskeyexpire: Some(datetime!(2022-08-01 01:02:03 -8)),
+                    language: "ENG",
+                    unknown: HashMap::from([("INTU.BID", "00015")]),
+                })
+            }),
+        },
+    }) ;
+    "signon response with minimum fields"
 )]
 fn test_from_str(input: &str, expected: Result<Ofx>) {
     assert_eq!(from_str(input), expected);

@@ -28,7 +28,7 @@ pub enum Error {
 
 impl de::Error for Error {
     fn custom<T: fmt::Display>(msg: T) -> Error {
-        Error::Deserialize(format!("{}", msg))
+        Error::Deserialize(format!("{msg}"))
     }
 }
 

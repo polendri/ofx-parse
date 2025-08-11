@@ -35,7 +35,7 @@ pub enum OfxCharset {
 
 /// The header segment of an OFX document.
 #[derive(Clone, Debug, PartialEq)]
-pub struct OfxHeader<'a> {
+pub struct OfxHeader {
     /// The version of the header portion of the document. `100` is the only valid value; other
     /// values are tolerated, yielding a warning.
     pub header_version: u32,
@@ -54,9 +54,9 @@ pub struct OfxHeader<'a> {
     /// other values are tolerated, yielding a warning.
     pub charset: OfxCharset,
     /// Unused.
-    pub compression: &'a str,
+    pub compression: String,
     /// Intended to be used in conjunction with `new_file_uid` for file-based error recovery.
-    pub old_file_uid: &'a str,
+    pub old_file_uid: String,
     /// Uniquely identifies a request file.
-    pub new_file_uid: &'a str,
+    pub new_file_uid: String,
 }

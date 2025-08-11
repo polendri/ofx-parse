@@ -26,21 +26,22 @@ use crate::parse::sgml::{
 };
 use crate::{
     error::{Error, Result},
-    ofx::{header::*, Ofx},
+    ofx::{header::*, Ofx, OfxRoot},
     parse::sgml::element::start_tag,
-    OfxRoot,
 };
 
 /// Serde deserializer for SGML OFX documents.
 pub(crate) struct Deserializer<'de, 'h> {
-    pub header: &'h OfxHeader<'de>,
+    // TODO: use header's character encoding information
+    #[allow(dead_code, reason = "using header data not net implemented")]
+    pub header: &'h OfxHeader,
     input: &'de str,
     skip_next_outer: bool,
 }
 
 impl<'de, 'h> Deserializer<'de, 'h> {
     /// Creates an OFX deserializer from a &str.
-    pub(crate) fn from_str(header: &'h OfxHeader<'de>, input: &'de str) -> Result<Self> {
+    pub(crate) fn from_str(header: &'h OfxHeader, input: &'de str) -> Result<Self> {
         Ok(Deserializer {
             header,
             input,
@@ -280,6 +281,7 @@ impl<'de, 'h, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de, 'h> {
     forward_to_deserialize_any! { bool bytes byte_buf identifier ignored_any }
 }
 
+/// Deserializes an OFX header from an input string, returning the remaining input and the header.
 pub(crate) fn header_from_str(s: &str) -> Result<(&str, OfxHeader)> {
     ofx_header::<VerboseError<&str>>(s).map_err(|e| match e {
         Err::Incomplete(_) => Error::ParseIncomplete,
@@ -287,9 +289,12 @@ pub(crate) fn header_from_str(s: &str) -> Result<(&str, OfxHeader)> {
     })
 }
 
-pub(crate) fn body_from_str<'a, B: Deserialize<'a>>(
-    header: &'a OfxHeader,
-    s: &'a str,
+/// Deserializes OFX SGML from an input string, returning an error if not all input is consumed.
+/// Typically this would be used with `B = OfxRoot` to deserialize an entire SGML OFX document's
+/// body, but it can be used for snippets of SMGL as well.
+pub(crate) fn body_from_str<'de, 'h, B: Deserialize<'de>>(
+    header: &'h OfxHeader,
+    s: &'de str,
 ) -> Result<B> {
     let mut deserializer = Deserializer::from_str(header, s)?;
     let b = B::deserialize(&mut deserializer)?;
@@ -301,19 +306,12 @@ pub(crate) fn body_from_str<'a, B: Deserialize<'a>>(
     }
 }
 
+/// Deserializes an OFX document from an input string, returning an error if not all input is
+/// consumed.
 pub(crate) fn from_str(s: &str) -> Result<Ofx> {
-    let (s, header) = ofx_header::<VerboseError<&str>>(s).map_err(|e| match e {
-        Err::Incomplete(_) => Error::ParseIncomplete,
-        Err::Error(e) | Err::Failure(e) => Error::ParseError(convert_error(s, e)),
-    })?;
-    let mut deserializer = Deserializer::from_str(&header, s)?;
-    let ofx = OfxRoot::deserialize(&mut deserializer)?;
-
-    if deserializer.input.trim_start().is_empty() {
-        Ok(Ofx { header, ofx })
-    } else {
-        Err(Error::TrailingInput)
-    }
+    let (s, header) = header_from_str(s)?;
+    let ofx: OfxRoot = body_from_str(&header, s)?;
+    Ok(Ofx { header, ofx })
 }
 
 #[allow(non_snake_case)]
@@ -382,23 +380,26 @@ mod tests {
         },
     }
 
-    const HEADER: OfxHeader = OfxHeader {
-        header_version: 100,
-        data: OfxContentType::OfxSgml,
-        version: 102,
-        security: OfxSecurity::None,
-        encoding: OfxEncoding::UsAscii,
-        charset: OfxCharset::Latin1,
-        compression: "",
-        old_file_uid: "NONE",
-        new_file_uid: "NONE",
-    };
+    fn header() -> OfxHeader {
+        OfxHeader {
+            header_version: 100,
+            data: OfxContentType::OfxSgml,
+            version: 102,
+            security: OfxSecurity::None,
+            encoding: OfxEncoding::UsAscii,
+            charset: OfxCharset::Latin1,
+            compression: "".to_owned(),
+            old_file_uid: "NONE".to_owned(),
+            new_file_uid: "NONE".to_owned(),
+        }
+    }
 
     fn assert_deserialize<'de, T>(input: &'de str, expected: Result<T>, remaining: &'de str)
     where
         T: std::fmt::Debug + Deserialize<'de> + PartialEq,
     {
-        let mut deserializer = Deserializer::from_str(&HEADER, input).unwrap();
+        let header = header();
+        let mut deserializer = Deserializer::from_str(&header, input).unwrap();
         let result = T::deserialize(&mut deserializer);
 
         assert_eq!(result, expected);

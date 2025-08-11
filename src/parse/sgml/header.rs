@@ -128,7 +128,7 @@ where
 }
 
 /// Parses the header of an OFX document.
-pub(crate) fn ofx_header<'a, E>(input: &'a str) -> IResult<&'a str, OfxHeader<'a>, E>
+pub(crate) fn ofx_header<'a, E>(input: &'a str) -> IResult<&'a str, OfxHeader, E>
 where
     E: ParseError<&'a str>,
 {
@@ -162,9 +162,9 @@ where
             security,
             encoding,
             charset,
-            compression,
-            old_file_uid,
-            new_file_uid,
+            compression: compression.to_owned(),
+            old_file_uid: old_file_uid.to_owned(),
+            new_file_uid: new_file_uid.to_owned(),
         },
     ))
 }
@@ -304,9 +304,9 @@ mod tests {
                 security: OfxSecurity::Unknown(String::from("ASDF2")),
                 encoding: OfxEncoding::UsAscii,
                 charset: OfxCharset::Unknown(String::from("ASDF3")),
-                compression: "",
-                old_file_uid: "ASDF4",
-                new_file_uid: "ASDF5",
+                compression: "".to_owned(),
+                old_file_uid: "ASDF4".to_owned(),
+                new_file_uid: "ASDF5".to_owned(),
 
         }),
         "" ;
@@ -329,9 +329,9 @@ mod tests {
             security: OfxSecurity::None,
             encoding: OfxEncoding::UsAscii,
             charset: OfxCharset::WindowsLatin1,
-            compression: "",
-            old_file_uid: "OLD",
-            new_file_uid: "NEW",
+            compression: "".to_owned(),
+            old_file_uid: "OLD".to_owned(),
+            new_file_uid: "NEW".to_owned(),
         }),
         "x" ;
         "valid ordered header"
@@ -354,9 +354,9 @@ mod tests {
             security: OfxSecurity::None,
             encoding: OfxEncoding::UsAscii,
             charset: OfxCharset::WindowsLatin1,
-            compression: "",
-            old_file_uid: "OLD",
-            new_file_uid: "NEW",
+            compression: "".to_owned(),
+            old_file_uid: "OLD".to_owned(),
+            new_file_uid: "NEW".to_owned(),
         }),
         "x" ;
         "valid out-of-order header"

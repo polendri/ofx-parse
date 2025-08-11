@@ -6,6 +6,7 @@ use crate::{de::sgml::from_str as from_sgml_str, ofx::Ofx, parse::sgml::datetime
 
 pub(crate) mod sgml;
 
+/// Serde visitor for `OffsetDateTime`.
 pub(super) struct OffsetDateTimeVisitor<T: ?Sized>(pub(super) PhantomData<T>);
 
 impl<'a> serde::de::Visitor<'a> for OffsetDateTimeVisitor<OffsetDateTime> {
@@ -22,6 +23,7 @@ impl<'a> serde::de::Visitor<'a> for OffsetDateTimeVisitor<OffsetDateTime> {
     }
 }
 
+/// Serde visitor for `Option<OffsetDateTime>`.
 pub(super) struct OptionOffsetDateTimeVisitor<T: ?Sized>(pub(super) PhantomData<T>);
 
 impl<'a> serde::de::Visitor<'a> for OptionOffsetDateTimeVisitor<Option<OffsetDateTime>> {
@@ -62,11 +64,4 @@ pub fn from_str(s: &str) -> crate::error::Result<Ofx> {
     from_sgml_str(s)
 }
 
-#[allow(non_snake_case)]
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    // #[test]
-    // fn deserialize_datetime__valid_input__
-}
+// Tested indirectly via integration tests, since it's a pain to unit-test these

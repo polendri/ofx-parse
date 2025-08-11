@@ -3,10 +3,8 @@
 // TODO: Determine public interface
 
 mod de;
-mod error;
+pub mod error;
 pub mod ofx;
 mod parse;
 
 pub use de::from_str;
-pub use error::{Error, Result};
-pub use ofx::*;

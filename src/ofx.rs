@@ -20,51 +20,48 @@ pub enum Severity {
 /// Status Aggregate `<STATUS>`, OFX Spec v1.6 3.1.5
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 #[serde(rename = "STATUS", rename_all = "UPPERCASE")]
-pub struct StatusV1<'a> {
+pub struct StatusV1 {
     pub code: i32,
     pub severity: Severity,
-    pub message: &'a str,
+    pub message: String,
 }
 
 /// Signon Response `<SONRS>`, OFX Spec v1.6 2.5.1.2
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 #[serde(rename = "SONRS", rename_all = "UPPERCASE")]
-pub struct SignonResponse<'a> {
-    #[serde(borrow)]
-    pub status: StatusV1<'a>,
+pub struct SignonResponse {
+    pub status: StatusV1,
     #[serde(deserialize_with = "deserialize_datetime")]
     pub dtserver: OffsetDateTime,
     #[serde(default)]
-    pub userkey: Option<&'a str>,
+    pub userkey: Option<String>,
     #[serde(default, deserialize_with = "deserialize_option_datetime")]
     pub tskeyexpire: Option<OffsetDateTime>,
-    pub language: &'a str,
+    pub language: String,
     #[serde(flatten)]
-    pub unknown: HashMap<&'a str, &'a str>,
+    pub unknown: HashMap<String, String>,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 #[serde(rename = "SIGNONMSGSRSV1", rename_all = "UPPERCASE")]
-pub struct SignonMessageSetV1<'a> {
+pub struct SignonMessageSetResponseV1 {
     // sonrq
-    #[serde(borrow)]
-    pub sonrs: Option<SignonResponse<'a>>,
+    pub sonrs: Option<SignonResponse>,
 }
 
 /// An OFX response document.
 #[derive(Clone, Debug, Default, Deserialize, PartialEq)]
 #[serde(rename = "OFX", rename_all = "UPPERCASE")]
-pub struct OfxRoot<'a> {
+pub struct OfxRoot {
     // TODO: support v2
-    #[serde(borrow)]
-    pub signonmsgsrsv1: Option<SignonMessageSetV1<'a>>,
+    pub signonmsgsrsv1: Option<SignonMessageSetResponseV1>,
 }
 
 /// An OFX document.
 #[derive(Clone, Debug, PartialEq)]
-pub struct Ofx<'a> {
+pub struct Ofx {
     /// The header section of the document.
-    pub header: OfxHeader<'a>,
+    pub header: OfxHeader,
     /// The root of the document.
-    pub ofx: OfxRoot<'a>,
+    pub ofx: OfxRoot,
 }
